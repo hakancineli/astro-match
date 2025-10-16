@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface User {
   id: string
@@ -44,6 +44,91 @@ const monthNames = [
 // Gün isimleri
 const dayNames = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']
 
+// API Functions
+const fetchUsers = async () => {
+  try {
+    const response = await fetch('/api/users')
+    if (response.ok) {
+      const data = await response.json()
+      return data
+    }
+    return []
+  } catch (error) {
+    console.error('Error fetching users:', error)
+    return []
+  }
+}
+
+const createUser = async (userData: any) => {
+  try {
+    const response = await fetch('/api/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    })
+    if (response.ok) {
+      return await response.json()
+    }
+    throw new Error('Failed to create user')
+  } catch (error) {
+    console.error('Error creating user:', error)
+    throw error
+  }
+}
+
+const loginUser = async (username: string, password: string) => {
+  try {
+    const response = await fetch('/api/auth', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password }),
+    })
+    if (response.ok) {
+      return await response.json()
+    }
+    throw new Error('Invalid credentials')
+  } catch (error) {
+    console.error('Error logging in:', error)
+    throw error
+  }
+}
+
+const fetchMessages = async (senderId: string, receiverId: string) => {
+  try {
+    const response = await fetch(`/api/messages?sender_id=${senderId}&receiver_id=${receiverId}`)
+    if (response.ok) {
+      return await response.json()
+    }
+    return []
+  } catch (error) {
+    console.error('Error fetching messages:', error)
+    return []
+  }
+}
+
+const sendMessage = async (senderId: string, receiverId: string, text: string) => {
+  try {
+    const response = await fetch('/api/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ sender_id: senderId, receiver_id: receiverId, text }),
+    })
+    if (response.ok) {
+      return await response.json()
+    }
+    throw new Error('Failed to send message')
+  } catch (error) {
+    console.error('Error sending message:', error)
+    throw error
+  }
+}
+
 export default function Page() {
   const [users, setUsers] = useState<User[]>([])
   const [formData, setFormData] = useState({
@@ -65,34 +150,44 @@ export default function Page() {
   const [chatWith, setChatWith] = useState<User | null>(null)
   const [newMessage, setNewMessage] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Load users on component mount
+  useEffect(() => {
+    const loadUsers = async () => {
+      const usersData = await fetchUsers()
+      setUsers(usersData)
+    }
+    loadUsers()
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isLoggedIn) {
-      // Kayıt ol
-      const zodiac = getZodiacSign(formData.birthday)
-      const newUser: User = {
-        id: Date.now().toString(),
-        username: formData.username,
-        instagram: formData.instagram,
-        twitter: formData.twitter,
-        birthday: formData.birthday,
-        zodiac: zodiac,
-        createdAt: new Date().toISOString()
-      }
-      setUsers(prev => [...prev, newUser])
-      setCurrentUser(newUser)
-      setIsLoggedIn(true)
-      setFormData({ username: '', password: '', instagram: '', twitter: '', birthday: '' })
-      
-      // Kullanıcının doğum günü ayına git
-      const birthdayDate = new Date(formData.birthday)
-      setCurrentMonth(birthdayDate.getMonth())
-      setCurrentYear(birthdayDate.getFullYear())
-      setSelectedDate(formData.birthday)
-    } else {
-      // Giriş yap
-      const user = users.find(u => u.username === formData.username)
-      if (user) {
+    try {
+      if (!isLoggedIn) {
+        // Kayıt ol
+        const zodiac = getZodiacSign(formData.birthday)
+        const userData = {
+          username: formData.username,
+          password: formData.password,
+          instagram: formData.instagram,
+          twitter: formData.twitter,
+          birthday: formData.birthday,
+          zodiac: zodiac,
+        }
+        
+        const newUser = await createUser(userData)
+        setUsers(prev => [...prev, newUser])
+        setCurrentUser(newUser)
+        setIsLoggedIn(true)
+        setFormData({ username: '', password: '', instagram: '', twitter: '', birthday: '' })
+        
+        // Kullanıcının doğum günü ayına git
+        const birthdayDate = new Date(formData.birthday)
+        setCurrentMonth(birthdayDate.getMonth())
+        setCurrentYear(birthdayDate.getFullYear())
+        setSelectedDate(formData.birthday)
+      } else {
+        // Giriş yap
+        const user = await loginUser(formData.username, formData.password)
         setCurrentUser(user)
         setIsLoggedIn(true)
         
@@ -102,6 +197,8 @@ export default function Page() {
         setCurrentYear(birthdayDate.getFullYear())
         setSelectedDate(user.birthday)
       }
+    } catch (error) {
+      alert('Hata: ' + (error as Error).message)
     }
   }
 
@@ -126,30 +223,29 @@ export default function Page() {
     return `${day} ${month} ${year}`
   }
 
-  const sendMessage = (toUserId: string, message: string) => {
-    if (!message.trim()) return
+  const sendMessageToUser = async (toUserId: string, message: string) => {
+    if (!message.trim() || !currentUser) return
     
-    const messageKey = `${currentUser?.id}-${toUserId}`
-    const reverseKey = `${toUserId}-${currentUser?.id}`
-    const timestamp = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
-    
-    setMessages(prev => ({
-      ...prev,
-      [messageKey]: [...(prev[messageKey] || []), {
-        id: Date.now().toString(),
-        text: message,
-        sender: currentUser?.username || '',
-        timestamp: timestamp,
-        isOwn: true
-      }],
-      [reverseKey]: [...(prev[reverseKey] || []), {
-        id: Date.now().toString(),
-        text: message,
-        sender: currentUser?.username || '',
-        timestamp: timestamp,
-        isOwn: false
-      }]
-    }))
+    try {
+      await sendMessage(currentUser.id, toUserId, message)
+      
+      // Refresh messages
+      const messageKey = `${currentUser.id}-${toUserId}`
+      const messagesData = await fetchMessages(currentUser.id, toUserId)
+      
+      setMessages(prev => ({
+        ...prev,
+        [messageKey]: messagesData.map((msg: any) => ({
+          id: msg.id,
+          text: msg.text,
+          sender: msg.sender_id === currentUser.id ? currentUser.username : 'Other',
+          timestamp: new Date(msg.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+          isOwn: msg.sender_id === currentUser.id
+        }))
+      }))
+    } catch (error) {
+      console.error('Error sending message:', error)
+    }
   }
 
   const openChat = (user: User) => {
@@ -159,7 +255,7 @@ export default function Page() {
 
   const handleSendMessage = () => {
     if (newMessage.trim() && chatWith) {
-      sendMessage(chatWith.id, newMessage)
+      sendMessageToUser(chatWith.id, newMessage)
       setNewMessage('')
     }
   }

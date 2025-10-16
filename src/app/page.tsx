@@ -56,7 +56,7 @@ export default function Page() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [messages, setMessages] = useState<{[key: string]: string[]}>({})
+  const [messages, setMessages] = useState<{[key: string]: any[]}>({})
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [selectedUser, setSelectedUser] = useState<User | null>(null)

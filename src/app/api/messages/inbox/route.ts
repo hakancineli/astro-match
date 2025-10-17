@@ -37,10 +37,6 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
     // Group messages by sender
     const groupedMessages = messagesWithSenders.reduce((acc: any, message: any) => {
       const senderId = message.sender_id

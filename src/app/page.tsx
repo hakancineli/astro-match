@@ -119,10 +119,13 @@ const sendMessage = async (senderId: string, receiverId: string, text: string) =
       },
       body: JSON.stringify({ sender_id: senderId, receiver_id: receiverId, text }),
     })
-    if (response.ok) {
-      return await response.json()
+    
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Failed to send message')
     }
-    throw new Error('Failed to send message')
+    
+    return await response.json()
   } catch (error) {
     console.error('Error sending message:', error)
     throw error

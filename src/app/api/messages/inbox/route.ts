@@ -13,13 +13,7 @@ export async function GET(request: NextRequest) {
     // Get all messages where the user is the receiver
     const { data, error } = await supabase
       .from('messages')
-      .select(`
-        *,
-        sender:sender_id (
-          username,
-          profile_photo
-        )
-      `)
+      .select('*')
       .eq('receiver_id', userId)
       .order('created_at', { ascending: false })
 
@@ -27,8 +21,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    // Get sender information for each message
+    const messagesWithSenders = await Promise.all(
+      data.map(async (message: any) => {
+        const { data: sender } = await supabase
+          .from('users')
+          .select('id, username, profile_photo')
+          .eq('id', message.sender_id)
+          .single()
+        
+        return {
+          ...message,
+          sender: sender || { id: message.sender_id, username: 'Bilinmeyen', profile_photo: null }
+        }
+      })
+    )
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
     // Group messages by sender
-    const groupedMessages = data.reduce((acc: any, message: any) => {
+    const groupedMessages = messagesWithSenders.reduce((acc: any, message: any) => {
       const senderId = message.sender_id
       if (!acc[senderId]) {
         acc[senderId] = {

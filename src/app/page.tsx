@@ -182,12 +182,26 @@ export default function Page() {
   useEffect(() => {
     const savedUser = localStorage.getItem('currentUser')
     const savedLoginState = localStorage.getItem('isLoggedIn')
+    const savedMonth = localStorage.getItem('currentMonth')
+    const savedYear = localStorage.getItem('currentYear')
     
     if (savedUser && savedLoginState === 'true') {
       try {
         const user = JSON.parse(savedUser)
         setCurrentUser(user)
         setIsLoggedIn(true)
+        
+        // Restore calendar position
+        if (savedMonth && savedYear) {
+          setCurrentMonth(parseInt(savedMonth))
+          setCurrentYear(parseInt(savedYear))
+        } else if (user.birthday) {
+          // Go to user's birthday month
+          const birthdayDate = new Date(user.birthday)
+          setCurrentMonth(birthdayDate.getMonth())
+          setCurrentYear(birthdayDate.getFullYear())
+          setSelectedDate(user.birthday)
+        }
       } catch (error) {
         console.error('Error parsing saved user:', error)
         localStorage.removeItem('currentUser')
@@ -231,6 +245,10 @@ export default function Page() {
         setCurrentMonth(birthdayDate.getMonth())
         setCurrentYear(birthdayDate.getFullYear())
         setSelectedDate(formData.birthday)
+        
+        // Save calendar position to localStorage
+        localStorage.setItem('currentMonth', birthdayDate.getMonth().toString())
+        localStorage.setItem('currentYear', birthdayDate.getFullYear().toString())
       } else {
         // Giriş yap - sadece kullanıcı adı ve şifre gerekli
         if (!formData.username || !formData.password) {
@@ -251,6 +269,10 @@ export default function Page() {
         setCurrentMonth(birthdayDate.getMonth())
         setCurrentYear(birthdayDate.getFullYear())
         setSelectedDate(user.birthday)
+        
+        // Save calendar position to localStorage
+        localStorage.setItem('currentMonth', birthdayDate.getMonth().toString())
+        localStorage.setItem('currentYear', birthdayDate.getFullYear().toString())
       }
     } catch (error) {
       alert('Hata: ' + (error as Error).message)
@@ -264,6 +286,8 @@ export default function Page() {
     // Clear localStorage
     localStorage.removeItem('currentUser')
     localStorage.removeItem('isLoggedIn')
+    localStorage.removeItem('currentMonth')
+    localStorage.removeItem('currentYear')
   }
 
   const openInbox = async () => {
@@ -341,21 +365,31 @@ export default function Page() {
   }
 
   const navigateMonth = (direction: 'prev' | 'next') => {
+    let newMonth = currentMonth
+    let newYear = currentYear
+    
     if (direction === 'prev') {
       if (currentMonth === 0) {
-        setCurrentMonth(11)
-        setCurrentYear(currentYear - 1)
+        newMonth = 11
+        newYear = currentYear - 1
       } else {
-        setCurrentMonth(currentMonth - 1)
+        newMonth = currentMonth - 1
       }
     } else {
       if (currentMonth === 11) {
-        setCurrentMonth(0)
-        setCurrentYear(currentYear + 1)
+        newMonth = 0
+        newYear = currentYear + 1
       } else {
-        setCurrentMonth(currentMonth + 1)
+        newMonth = currentMonth + 1
       }
     }
+    
+    setCurrentMonth(newMonth)
+    setCurrentYear(newYear)
+    
+    // Save to localStorage
+    localStorage.setItem('currentMonth', newMonth.toString())
+    localStorage.setItem('currentYear', newYear.toString())
   }
 
   const formatDateForBirthday = (day: number) => {

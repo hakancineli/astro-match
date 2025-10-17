@@ -322,30 +322,48 @@ export default function Page() {
     if (!message.trim() || !currentUser) return
     
     try {
-      await sendMessage(currentUser.id, toUserId, message)
+      const newMsg = await sendMessage(currentUser.id, toUserId, message)
       
-      // Refresh messages
+      // Add message to current chat immediately
       const messageKey = `${currentUser.id}-${toUserId}`
-      const messagesData = await fetchMessages(currentUser.id, toUserId)
+      const newMessageObj = {
+        id: newMsg.id,
+        text: newMsg.text,
+        sender: currentUser.username,
+        timestamp: new Date(newMsg.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+        isOwn: true
+      }
+      
+      setMessages(prev => ({
+        ...prev,
+        [messageKey]: [...(prev[messageKey] || []), newMessageObj]
+      }))
+    } catch (error) {
+      console.error('Error sending message:', error)
+      alert('Mesaj gönderilemedi: ' + (error as Error).message)
+    }
+  }
+
+  const openChat = async (user: User) => {
+    setChatWith(user)
+    setShowChat(true)
+    
+    // Load messages for this chat
+    if (currentUser) {
+      const messageKey = `${currentUser.id}-${user.id}`
+      const messagesData = await fetchMessages(currentUser.id, user.id)
       
       setMessages(prev => ({
         ...prev,
         [messageKey]: messagesData.map((msg: any) => ({
           id: msg.id,
           text: msg.text,
-          sender: msg.sender_id === currentUser.id ? currentUser.username : 'Other',
+          sender: msg.sender_id === currentUser.id ? currentUser.username : user.username,
           timestamp: new Date(msg.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
           isOwn: msg.sender_id === currentUser.id
         }))
       }))
-    } catch (error) {
-      console.error('Error sending message:', error)
     }
-  }
-
-  const openChat = (user: User) => {
-    setChatWith(user)
-    setShowChat(true)
   }
 
   const handleSendMessage = () => {
@@ -435,6 +453,12 @@ export default function Page() {
               >
                 📨 Gelen Kutusu
               </button>
+              <a 
+                href="/admin"
+                className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-md text-sm flex items-center gap-2"
+              >
+                🔧 Admin
+              </a>
               <button 
                 onClick={handleLogout}
                 className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md text-sm"

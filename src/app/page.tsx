@@ -132,6 +132,19 @@ const sendMessage = async (senderId: string, receiverId: string, text: string) =
   }
 }
 
+const fetchInboxMessages = async (userId: string) => {
+  try {
+    const response = await fetch(`/api/messages/inbox?user_id=${userId}`)
+    if (response.ok) {
+      return await response.json()
+    }
+    return []
+  } catch (error) {
+    console.error('Error fetching inbox messages:', error)
+    return []
+  }
+}
+
 export default function Page() {
   const [users, setUsers] = useState<User[]>([])
   const [formData, setFormData] = useState({
@@ -153,6 +166,8 @@ export default function Page() {
   const [chatWith, setChatWith] = useState<User | null>(null)
   const [newMessage, setNewMessage] = useState('')
   const [isRegisterMode, setIsRegisterMode] = useState(true)
+  const [showInbox, setShowInbox] = useState(false)
+  const [inboxMessages, setInboxMessages] = useState<any[]>([])
 
   // Load users on component mount
   useEffect(() => {
@@ -249,6 +264,18 @@ export default function Page() {
     // Clear localStorage
     localStorage.removeItem('currentUser')
     localStorage.removeItem('isLoggedIn')
+  }
+
+  const openInbox = async () => {
+    if (currentUser) {
+      const inboxData = await fetchInboxMessages(currentUser.id)
+      setInboxMessages(inboxData)
+      setShowInbox(true)
+    }
+  }
+
+  const closeInbox = () => {
+    setShowInbox(false)
   }
 
   const getUsersByBirthday = (date: string) => {
@@ -368,6 +395,12 @@ export default function Page() {
           {isLoggedIn && (
             <div className="flex items-center gap-4">
               <span className="text-sm">Hoş geldin, {currentUser?.username}!</span>
+              <button 
+                onClick={openInbox}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-sm flex items-center gap-2"
+              >
+                📨 Gelen Kutusu
+              </button>
               <button 
                 onClick={handleLogout}
                 className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md text-sm"
@@ -790,6 +823,80 @@ export default function Page() {
                     📤
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Gelen Kutusu Modal */}
+        {showInbox && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-md max-h-[80vh] overflow-hidden">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">📨 Gelen Kutusu</h3>
+                <button 
+                  onClick={closeInbox}
+                  className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {inboxMessages.length === 0 ? (
+                  <p className="text-slate-500 dark:text-slate-400 text-center py-8">
+                    Henüz mesajınız yok
+                  </p>
+                ) : (
+                  inboxMessages.map((conversation: any) => (
+                    <div 
+                      key={conversation.sender.id}
+                      className="p-3 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
+                      onClick={() => {
+                        const senderUser = users.find(u => u.id === conversation.sender.id)
+                        if (senderUser) {
+                          setChatWith(senderUser)
+                          setShowChat(true)
+                          closeInbox()
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900 rounded-full flex items-center justify-center">
+                          {conversation.sender.profile_photo ? (
+                            <img 
+                              src={conversation.sender.profile_photo} 
+                              alt={conversation.sender.username}
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
+                              {conversation.sender.username.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start">
+                            <p className="font-medium text-slate-900 dark:text-white truncate">
+                              {conversation.sender.username}
+                            </p>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                              {new Date(conversation.lastMessage.created_at).toLocaleDateString('tr-TR')}
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 truncate">
+                            {conversation.lastMessage.text}
+                          </p>
+                          {conversation.unreadCount > 1 && (
+                            <span className="inline-block bg-indigo-600 text-white text-xs px-2 py-1 rounded-full mt-1">
+                              {conversation.unreadCount} mesaj
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

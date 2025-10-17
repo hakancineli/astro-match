@@ -149,6 +149,7 @@ export default function Page() {
   const [showChat, setShowChat] = useState(false)
   const [chatWith, setChatWith] = useState<User | null>(null)
   const [newMessage, setNewMessage] = useState('')
+  const [isRegisterMode, setIsRegisterMode] = useState(true)
 
   // Load users on component mount
   useEffect(() => {
@@ -180,8 +181,13 @@ export default function Page() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      if (!isLoggedIn) {
-        // Kayıt ol
+      if (isRegisterMode) {
+        // Kayıt ol - tüm alanlar gerekli
+        if (!formData.username || !formData.password || !formData.birthday) {
+          alert('Lütfen tüm gerekli alanları doldurun!')
+          return
+        }
+        
         const zodiac = getZodiacSign(formData.birthday)
         const userData = {
           username: formData.username,
@@ -208,7 +214,12 @@ export default function Page() {
         setCurrentYear(birthdayDate.getFullYear())
         setSelectedDate(formData.birthday)
       } else {
-        // Giriş yap
+        // Giriş yap - sadece kullanıcı adı ve şifre gerekli
+        if (!formData.username || !formData.password) {
+          alert('Lütfen kullanıcı adı ve şifrenizi girin!')
+          return
+        }
+        
         const user = await loginUser(formData.username, formData.password)
         setCurrentUser(user)
         setIsLoggedIn(true)
@@ -367,7 +378,30 @@ export default function Page() {
         {!isLoggedIn ? (
           <section className="max-w-md mx-auto">
             <form onSubmit={handleSubmit} className="rounded-xl border border-white/10 bg-white/70 dark:bg-white/10 backdrop-blur p-6">
-              <h2 className="font-medium mb-4 text-center">Kayıt Ol / Giriş Yap</h2>
+              <div className="flex mb-4 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                <button
+                  type="button"
+                  onClick={() => setIsRegisterMode(true)}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                    isRegisterMode 
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  Kayıt Ol
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsRegisterMode(false)}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                    !isRegisterMode 
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  Giriş Yap
+                </button>
+              </div>
             <div className="grid grid-cols-1 gap-3">
                 <input 
                   className="bg-white border border-slate-200 dark:bg-white/10 dark:border-white/10 rounded px-3 py-2 outline-none focus:ring-2 ring-indigo-400" 
@@ -384,27 +418,31 @@ export default function Page() {
                   onChange={(e) => setFormData(prev => ({...prev, password: e.target.value}))}
                   required
                 />
-                <input 
-                  className="bg-white border border-slate-200 dark:bg-white/10 dark:border-white/10 rounded px-3 py-2 outline-none focus:ring-2 ring-indigo-400" 
-                  placeholder="Instagram (@kullaniciadi)" 
-                  value={formData.instagram}
-                  onChange={(e) => setFormData(prev => ({...prev, instagram: e.target.value}))}
-                />
-                <input 
-                  className="bg-white border border-slate-200 dark:bg-white/10 dark:border-white/10 rounded px-3 py-2 outline-none focus:ring-2 ring-indigo-400" 
-                  placeholder="X (Twitter) (@kullaniciadi)" 
-                  value={formData.twitter}
-                  onChange={(e) => setFormData(prev => ({...prev, twitter: e.target.value}))}
-                />
-                <input 
-                  type="date" 
-                  className="bg-white border border-slate-200 dark:bg-white/10 dark:border-white/10 rounded px-3 py-2 outline-none focus:ring-2 ring-indigo-400" 
-                  value={formData.birthday}
-                  onChange={(e) => setFormData(prev => ({...prev, birthday: e.target.value}))}
-                  required
-                />
+                {isRegisterMode && (
+                  <>
+                    <input 
+                      className="bg-white border border-slate-200 dark:bg-white/10 dark:border-white/10 rounded px-3 py-2 outline-none focus:ring-2 ring-indigo-400" 
+                      placeholder="Instagram (@kullaniciadi)" 
+                      value={formData.instagram}
+                      onChange={(e) => setFormData(prev => ({...prev, instagram: e.target.value}))}
+                    />
+                    <input 
+                      className="bg-white border border-slate-200 dark:bg-white/10 dark:border-white/10 rounded px-3 py-2 outline-none focus:ring-2 ring-indigo-400" 
+                      placeholder="X (Twitter) (@kullaniciadi)" 
+                      value={formData.twitter}
+                      onChange={(e) => setFormData(prev => ({...prev, twitter: e.target.value}))}
+                    />
+                    <input 
+                      type="date" 
+                      className="bg-white border border-slate-200 dark:bg-white/10 dark:border-white/10 rounded px-3 py-2 outline-none focus:ring-2 ring-indigo-400" 
+                      value={formData.birthday}
+                      onChange={(e) => setFormData(prev => ({...prev, birthday: e.target.value}))}
+                      required={isRegisterMode}
+                    />
+                  </>
+                )}
                 <button type="submit" className="mt-1 inline-flex items-center justify-center rounded-md bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-sm font-medium text-white">
-                  Kayıt Ol / Giriş Yap
+                  {isRegisterMode ? 'Kayıt Ol' : 'Giriş Yap'}
                 </button>
             </div>
           </form>

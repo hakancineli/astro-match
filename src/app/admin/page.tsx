@@ -33,10 +33,40 @@ export default function AdminPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'users' | 'messages'>('users')
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    loadData()
+    // Check if already authenticated
+    const authStatus = localStorage.getItem('adminAuthenticated')
+    if (authStatus === 'true') {
+      setIsAuthenticated(true)
+      loadData()
+    } else {
+      setLoading(false)
+    }
   }, [])
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (password === 'Hakan34.') {
+      setIsAuthenticated(true)
+      localStorage.setItem('adminAuthenticated', 'true')
+      loadData()
+      setError('')
+    } else {
+      setError('Yanlış şifre!')
+    }
+  }
+
+  const handleLogout = () => {
+    setIsAuthenticated(false)
+    localStorage.removeItem('adminAuthenticated')
+    setPassword('')
+    setUsers([])
+    setMessages([])
+  }
 
   const loadData = async () => {
     setLoading(true)
@@ -106,6 +136,46 @@ export default function AdminPage() {
     }
   }
 
+  // Login form
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-8 w-full max-w-md">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">🔒 Admin Girişi</h1>
+            <p className="text-slate-600 dark:text-slate-400">Yönetim paneline erişim için şifre girin</p>
+          </div>
+          
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Admin Şifresi
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-white"
+                placeholder="Şifrenizi girin"
+                required
+              />
+              {error && (
+                <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+              )}
+            </div>
+            
+            <button
+              type="submit"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+            >
+              🔓 Giriş Yap
+            </button>
+          </form>
+        </div>
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
@@ -120,9 +190,17 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
       <div className="max-w-7xl mx-auto">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">🔧 Admin Paneli</h1>
-          <p className="text-slate-600 dark:text-slate-400">Astro Match Yönetim Paneli</p>
+        <header className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">🔧 Admin Paneli</h1>
+            <p className="text-slate-600 dark:text-slate-400">Astro Match Yönetim Paneli</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+          >
+            🚪 Çıkış
+          </button>
         </header>
 
         {/* Tabs */}

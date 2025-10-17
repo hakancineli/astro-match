@@ -453,12 +453,6 @@ export default function Page() {
               >
                 📨 Gelen Kutusu
               </button>
-              <a 
-                href="/admin"
-                className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-md text-sm flex items-center gap-2"
-              >
-                🔧 Admin
-              </a>
               <button 
                 onClick={handleLogout}
                 className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md text-sm"

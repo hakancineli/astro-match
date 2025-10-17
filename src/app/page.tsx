@@ -159,6 +159,24 @@ export default function Page() {
     loadUsers()
   }, [])
 
+  // Check for saved session on component mount
+  useEffect(() => {
+    const savedUser = localStorage.getItem('currentUser')
+    const savedLoginState = localStorage.getItem('isLoggedIn')
+    
+    if (savedUser && savedLoginState === 'true') {
+      try {
+        const user = JSON.parse(savedUser)
+        setCurrentUser(user)
+        setIsLoggedIn(true)
+      } catch (error) {
+        console.error('Error parsing saved user:', error)
+        localStorage.removeItem('currentUser')
+        localStorage.removeItem('isLoggedIn')
+      }
+    }
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
@@ -180,6 +198,10 @@ export default function Page() {
         setIsLoggedIn(true)
         setFormData({ username: '', password: '', instagram: '', twitter: '', birthday: '' })
         
+        // Save to localStorage
+        localStorage.setItem('currentUser', JSON.stringify(newUser))
+        localStorage.setItem('isLoggedIn', 'true')
+        
         // Kullanıcının doğum günü ayına git
         const birthdayDate = new Date(formData.birthday)
         setCurrentMonth(birthdayDate.getMonth())
@@ -190,6 +212,10 @@ export default function Page() {
         const user = await loginUser(formData.username, formData.password)
         setCurrentUser(user)
         setIsLoggedIn(true)
+        
+        // Save to localStorage
+        localStorage.setItem('currentUser', JSON.stringify(user))
+        localStorage.setItem('isLoggedIn', 'true')
         
         // Kullanıcının doğum günü ayına git
         const birthdayDate = new Date(user.birthday)
@@ -205,6 +231,10 @@ export default function Page() {
   const handleLogout = () => {
     setIsLoggedIn(false)
     setCurrentUser(null)
+    
+    // Clear localStorage
+    localStorage.removeItem('currentUser')
+    localStorage.removeItem('isLoggedIn')
   }
 
   const getUsersByBirthday = (date: string) => {
